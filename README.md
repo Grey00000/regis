@@ -12,8 +12,8 @@ Traditional financial machine learning models make a fatal assumption: **station
 **QuantRegime AI** solves this by decomposing non-stationary market time series into discrete latent states:
 1. **Unsupervised Regime Detection:** Gaussian Mixture Models (GMM) cluster historical market states based on returns, 20-day annualized realized volatility, and trend spreads.
 2. **First-Order Markov Transition Engine:** Computes empirical transition matrices ($P$), long-run ergodic equilibrium distributions ($\boldsymbol{\pi}$), and expected regime holding times ($\mathbb{E}[T]$).
-3. **Regime-Conditioned ML Regression:** Fits specialized predictive models (Ridge, Polynomial, or Random Forest) for each distinct market state, drastically improving directional sign accuracy.
-4. **Stochastic Monte Carlo Prediction Cone:** Simulates 150+ forward price trajectories by chaining Markov transition probabilities with regime-specific empirical residual shocks.
+3. **Regime-Conditioned ML Regression:** Fits specialized predictive models (Ridge, Polynomial, or Random Forest) for each distinct market state, letting each state have its own coefficients. Measured on held-out data the benefit is small or absent (see the *ML Architecture & Hold-out Check* tab), so treat the in-sample improvement with caution.
+4. **Stochastic Monte Carlo Prediction Cone:** Simulates 50-300 (default 150) forward price trajectories by chaining Markov transition probabilities with regime-specific empirical residual shocks.
 
 ---
 
@@ -52,7 +52,7 @@ For each forward day $t \in [1, \tau]$:
 
 ## 🚀 Key Dashboard Features
 
-- **🎯 Interactive Monte Carlo Cone:** 150 glowing stochastic paths with $50\%$ interquartile and $80\%$ probability bands, median forecast, and 95% Value-at-Risk (VaR).
+- **🎯 Interactive Monte Carlo Cone:** Adjustable number of stochastic paths (50-300, default 150) with $50\%$ interquartile and $80\%$ probability bands, median forecast, and 95% Value-at-Risk (VaR).
 - **🔄 Interactive Markov State Graph:** Plotly-rendered state transition network with curved edges, self-loop probabilities, and node sizes proportional to stationary equilibrium $\pi$.
 - **📊 Dynamic Candlestick & Regime Timeline:** Interactive candlestick chart with semi-transparent regime color bands (Green = Bull, Amber = Neutral, Red = Bear).
 - **🧠 ML Benchmark vs. Global Baseline:** Side-by-side metric comparison ($R^2$, RMSE, MAE, and Directional Accuracy %).
@@ -71,7 +71,7 @@ For each forward day $t \in [1, \tau]$:
 ### One-Click Launch (Linux/macOS)
 ```bash
 git clone <repo-url>
-cd markov_regime_forecaster
+cd regis
 chmod +x run.sh
 ./run.sh
 ```
@@ -96,7 +96,7 @@ The application will be accessible at `http://localhost:8501`.
 ## 📁 Repository Structure
 
 ```text
-markov_regime_forecaster/
+regis/
 ├── app.py                  # Main Streamlit interactive dashboard
 ├── requirements.txt        # Project dependencies
 ├── run.sh                  # One-click startup script
@@ -126,5 +126,5 @@ markov_regime_forecaster/
 ---
 
 ## 👥 Contributors & Academic Credits
-- **Project Title:** RegimeShift AI (Markov Chains & ML Regression)
+- **Project Title:** QuantRegime AI (Markov Chains & ML Regression)
 - **Domain:** Computational Finance, Stochastic Modeling & Machine Learning

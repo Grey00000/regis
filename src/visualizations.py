@@ -238,7 +238,7 @@ def create_monte_carlo_fan_chart(
     ticker: str = "ASSET"
 ) -> go.Figure:
     """
-    Creates the showstopper 150-path Monte Carlo probability fan chart
+    Creates the Monte Carlo probability fan chart
     with glowing median trajectory and 50% & 80% confidence bands.
     """
     fig = go.Figure()
@@ -399,7 +399,7 @@ def create_terminal_distribution_chart(sim_results: Dict[str, Any]) -> go.Figure
     )
 
     fig.update_layout(
-        title="<b>Distribution of Terminal Returns Across 150 Stochastic Paths</b>",
+        title=f"<b>Distribution of Terminal Returns Across {len(sim_results['terminal_returns'])} Stochastic Paths</b>",
         template="plotly_dark",
         plot_bgcolor=PALETTE["card_bg"],
         paper_bgcolor=PALETTE["bg"],

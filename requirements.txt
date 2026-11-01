@@ -7,3 +7,5 @@ streamlit>=1.30.0
 plotly>=5.18.0
 # Optional for live yahoo finance data:
 # yfinance>=0.2.30
+# Optional, only to regenerate the Word report in report/:
+# python-docx>=1.1.0

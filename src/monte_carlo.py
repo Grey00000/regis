@@ -76,7 +76,9 @@ class MonteCarloSimulator:
                 simulated_paths[sim_idx, day] = curr_price
                 simulated_regimes[sim_idx, day] = next_state
 
-                # State-space feature update for next step
+                # State-space feature update for next step.
+                # LIMITATION: only the return (index 0) is updated; volatility, trend, RSI and
+                # momentum stay frozen at their last observed values.
                 curr_features[0] = sim_return  # updated return
                 curr_state = next_state
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Quick launcher for RegimeShift AI
+# Quick launcher for QuantRegime AI
 set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"

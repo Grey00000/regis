@@ -19,7 +19,7 @@ STATE_COLORS = {
 class RegimeDetector:
     """
     Detects financial market regimes (Bull, Neutral, Bear) using
-    unsupervised statistical clustering (Gaussian Mixture Model / K-Means)
+    unsupervised statistical clustering (Gaussian Mixture Model)
     or statistical quantile thresholds.
     """
     def __init__(self, n_regimes: int = 3, method: str = "gmm"):
@@ -90,16 +90,22 @@ class RegimeDetector:
                 np.where(featured_df["Rolling_Vol_20"] > vol_thresh, 2, 1)
             )
             
-        # Re-map clusters deterministically by average return:
-        # 0 = highest return, 2 = lowest return
-        cluster_means = []
-        for c in range(self.n_regimes):
-            mask = (raw_labels == c)
-            mean_ret = featured_df.loc[mask, "Log_Return"].mean() if np.any(mask) else -999.0
-            cluster_means.append((c, mean_ret))
-            
-        cluster_means.sort(key=lambda x: x[1], reverse=True)
-        self.cluster_mapping = {original: sorted_idx for sorted_idx, (original, _) in enumerate(cluster_means)}
+        if self.method == "gmm":
+            # GMM cluster ids are arbitrary: rank them by average return
+            # (0 = highest return, 2 = lowest). Volatility is a clustering input,
+            # not part of the ranking rule.
+            cluster_means = []
+            for c in range(self.n_regimes):
+                mask = (raw_labels == c)
+                mean_ret = featured_df.loc[mask, "Log_Return"].mean() if np.any(mask) else -999.0
+                cluster_means.append((c, mean_ret))
+
+            cluster_means.sort(key=lambda x: x[1], reverse=True)
+            self.cluster_mapping = {original: sorted_idx for sorted_idx, (original, _) in enumerate(cluster_means)}
+        else:
+            # The quantile rule already emits meaningful labels (0 Bull, 1 Neutral, 2 Bear);
+            # re-sorting them by mean return could scramble the volatility-based Bear rule.
+            self.cluster_mapping = {c: c for c in range(self.n_regimes)}
         
         regime_series = np.array([self.cluster_mapping[c] for c in raw_labels])
         featured_df["Regime"] = regime_series

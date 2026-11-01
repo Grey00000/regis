@@ -14,7 +14,10 @@ def generate_synthetic_market_data(
     Guarantees the dashboard works seamlessly offline or without API access.
     """
     np.random.seed(42)
-    dates = pd.date_range(end=datetime.date.today(), periods=n_days, freq="B")
+    # Roll weekends back to the last business day: pd.date_range(end=<Sat/Sun>, freq="B")
+    # can return n_days - 1 dates on recent pandas, which breaks the DataFrame build.
+    end_date = pd.offsets.BDay().rollback(pd.Timestamp(datetime.date.today()))
+    dates = pd.date_range(end=end_date, periods=n_days, freq="B")
     
     # 3 regimes: 0: Bull (high drift, low vol), 1: Neutral (low drift, med vol), 2: Bear (neg drift, high vol)
     regime_params = [

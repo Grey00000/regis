@@ -58,7 +58,9 @@ class MarkovChainModel:
             # Find the eigenvalue closest to 1.0
             idx = np.argmin(np.abs(evals - 1.0))
             stationary = np.real(evecs[:, idx])
-            # Ensure non-negative and normalized
+            # Eigenvectors have an arbitrary sign: normalise FIRST so an all-negative
+            # vector becomes positive (clipping first would zero it and give 0/0 = NaN).
+            stationary = stationary / np.sum(stationary)
             stationary = np.maximum(stationary, 0)
             self.stationary_distribution = stationary / np.sum(stationary)
         except Exception:

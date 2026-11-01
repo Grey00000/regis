@@ -21,7 +21,7 @@ from src.visualizations import (
 
 # Page configuration
 st.set_page_config(
-    page_title="RegimeShift AI | Markov-ML Asset Forecaster",
+    page_title="QuantRegime AI | Markov-ML Asset Forecaster",
     page_icon="📈",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -156,9 +156,18 @@ def load_and_process_pipeline(ticker_sym: str, period_str: str, method: str, reg
     markov = MarkovChainModel(n_states=3, state_names=STATE_LABELS)
     markov.fit(classified_df["Regime"])
     
+    # Final model (fitted on all rows) is used for the Monte Carlo forecast.
     ml = RegimeMLRegressor(model_type=reg_type)
     ml.fit(classified_df)
-    ml_eval = ml.evaluate(classified_df)
+
+    # Honest evaluation: chronological 70/30 split. Models are fitted on the first
+    # 70% of rows only and scored on the last 30%. (Regime labels still come from a
+    # GMM fitted on the full history, so this is a descriptive hold-out check, not a
+    # walk-forward forecast test.)
+    split = int(len(classified_df) * 0.7)
+    ml_holdout = RegimeMLRegressor(model_type=reg_type)
+    ml_holdout.fit(classified_df.iloc[:split])
+    ml_eval = ml_holdout.evaluate(classified_df.iloc[split:])
     
     return {
         "raw_df": raw_df,
@@ -240,18 +249,18 @@ with col4:
     global_dir_acc = eval_res["global_metrics"]["Directional_Accuracy"]
     edge = regime_dir_acc - global_dir_acc
     st.metric(
-        label="Directional Accuracy",
+        label="Hold-out Directional Accuracy",
         value=f"{regime_dir_acc:.1f}%",
-        delta=f"{edge:+.1f}% vs Naive ML"
+        delta=f"{edge:+.1f} pts vs global model"
     )
 
 with col5:
     var95 = sim_results["var_95"]
     st.metric(
-        label="95% Value-at-Risk (VaR)",
+        label="95% VaR (5th-pct simulated return)",
         value=f"{var95:.1f}%",
-        delta="Maximum Expected Loss",
-        delta_color="inverse"
+        delta="Left-tail return over horizon",
+        delta_color="off"
     )
 
 st.write("")
@@ -261,7 +270,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🎯 Stochastic Forecast Fan",
     "🔄 Markov Chain Engine",
     "📊 Regime-Partitioned Price Action",
-    "🧠 ML Architecture & Validation",
+    "🧠 ML Architecture & Hold-out Check",
     "🎓 Faculty Viva Defense Guide"
 ])
 
@@ -351,18 +360,21 @@ with tab3:
     st.markdown("#### 📋 Historical Regime Performance Breakdown")
     st.dataframe(pipeline["regime_stats"], use_container_width=True)
 
-# ----------------- TAB 4: ML ARCHITECTURE & VALIDATION -----------------
+# ----------------- TAB 4: ML ARCHITECTURE & HOLD-OUT CHECK -----------------
 with tab4:
     col_v1, col_v2 = st.columns([1, 1])
     with col_v1:
         st.markdown("#### ⚔️ Model Performance Benchmark")
         st.dataframe(eval_res["comparison_df"], use_container_width=True)
+        st.caption("Scored on the last 30% of rows; models were fitted on the first 70% only. "
+                   "Regime labels come from a GMM fitted on the full history, so this is a descriptive hold-out check, not a walk-forward test. "
+                   "Daily returns are very noisy: expect R\u00b2 near zero and directional accuracy near 50-55%.")
         
         st.markdown(r"""
-        **Why Markov-Conditioned ML outperforms Naive ML:**
-        1. **Regime Heterogeneity:** Market returns exhibit structural breaks. A single global linear/polynomial model assumes constant slope coefficients $\boldsymbol{\beta}$, resulting in severe bias during market downturns.
-        2. **Piecewise Stationarity:** Financial time-series are non-stationary overall, but approximately stationary *within* each Markov sentiment regime.
-        3. **Conditioned Residuals:** Sampling stochastic shocks from the active regime's empirical residual variance ($\sigma^2_{S_t}$) preserves realistic fat-tailed skewness in Monte Carlo trajectories.
+        **Idea behind regime-conditioned regression (compare with the numbers above):**
+        1. **Regime Heterogeneity:** A single global model assumes constant slope coefficients $\boldsymbol{\beta}$ across calm and turbulent markets; separate models per regime can fit each state differently.
+        2. **Trade-off:** One model per regime also means fewer rows per model, which raises estimation error. In-sample the regime models usually look better; on held-out data the advantage often disappears.
+        3. **Conditioned Residuals:** Shocks in the Monte Carlo are resampled from the active regime's in-sample residuals ($\sigma^2_{S_t}$), which captures regime-dependent volatility but understates out-of-sample error.
         """)
         
     with col_v2:
@@ -384,7 +396,7 @@ with tab5:
             LSTMs are notoriously prone to overfitting on financial time series due to the low signal-to-noise ratio. They behave as 'black boxes' and cannot quantify discrete market regime shifts.  
             Our **Markov-ML hybrid model** delivers:
             - **Formal Mathematical Interpretability** (Transition Matrix $P$, stationary distributions $\pi$).
-            - **No Overfitting** on small regimes with explicit regularized ML.
+            - **Controlled overfitting risk** through regularised models (ridge, shallow forest); the hold-out check in Tab 4 shows how much, if any, edge survives.
             - **Direct probabilistic stress-testing** (simulating crashes by forcing regime transitions).
             """)
             
@@ -402,10 +414,11 @@ with tab5:
             st.markdown(r"""
             **Strong Answer:**  
             We use **Gaussian Mixture Models (GMM)**, an unsupervised Expectation-Maximization (EM) algorithm, over multi-dimensional feature space (Daily Returns, 20-Day Realized Volatility, and Trend Spread).  
-            The clusters are sorted deterministically into:
-            1. **Bull Regime:** High drift, low annualized volatility.
-            2. **Neutral Regime:** Near-zero drift, moderate consolidation.
-            3. **Bear Regime:** Negative drift, elevated volatility spikes.
+            The clusters are then ranked by their average daily return (volatility is a clustering input, not the ranking rule):
+            1. **Bull Regime:** Highest average return (typically with lower volatility).
+            2. **Neutral Regime:** Middle average return, moderate consolidation.
+            3. **Bear Regime:** Lowest average return (typically with elevated volatility).  
+            The GMM is fitted on the full history, so the regimes are a *descriptive* labelling of the past, not a real-time signal.
             """)
             
         with st.container(border=True):
@@ -417,6 +430,16 @@ with tab5:
             2. The ML model trained specifically on that regime predicts the drift $\mathbb{E}[r_{t+1}]$.
             3. A stochastic shock is sampled from that regime's empirical residual distribution $\epsilon \sim \text{Resid}(S_{t+1})$.  
             This preserves volatility clustering and asymmetric downside tails without assuming a naive Gaussian distribution!
+            """)
+
+        with st.container(border=True):
+            st.markdown("##### Q5: What are the limitations?")
+            st.markdown(r"""
+            **Strong Answer:**  
+            - The forward cones are *scenario simulations*, not out-of-sample price forecasts.  
+            - Regimes come from a GMM fitted on the whole history (look-ahead), and the number of regimes is fixed at three.  
+            - In the simulation only the return feature is updated each day; volatility, trend, RSI and momentum stay at their last observed values.  
+            - Residual shocks are in-sample, and 95% VaR is the 5th percentile of simulated horizon returns (noisy with few paths).
             """)
 
     st.markdown("---")
