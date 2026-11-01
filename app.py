@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import datetime
-import io
+import ioF
 
 from src.data_loader import fetch_market_data, generate_synthetic_market_data
 from src.regime_detector import RegimeDetector, STATE_LABELS, STATE_COLORS
@@ -262,7 +262,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "🔄 Markov Chain Engine",
     "📊 Regime-Partitioned Price Action",
     "🧠 ML Architecture & Validation",
-    "🎓 Faculty Viva Defense Guide"
+    "🎓 FAQ"
 ])
 
 # ----------------- TAB 1: MONTE CARLO STOCHASTIC FAN -----------------
@@ -368,10 +368,10 @@ with tab4:
     with col_v2:
         st.plotly_chart(create_model_comparison_bar(eval_res["comparison_df"]), use_container_width=True)
 
-# ----------------- TAB 5: FACULTY VIVA DEFENSE GUIDE -----------------
+# ----------------- TAB 5: FAQ -----------------
 with tab5:
     st.markdown("""
-    ### 🎓 Complete Viva Voce Defense Guide
+    ### 🎓 FAQ
     *Keep this tab handy during your project presentation or oral examination!*
     """)
     
