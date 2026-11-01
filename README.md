@@ -114,7 +114,7 @@ markov_regime_forecaster/
 
 ---
 
-## 🎓 Faculty Viva Voce Q&A Cheat Sheet
+## 🎓 FAQ
 
 | Question | Evaluation Focus | Model Answer |
 | :--- | :--- | :--- |
